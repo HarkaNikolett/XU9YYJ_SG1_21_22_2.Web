@@ -1,0 +1,345 @@
+﻿@{
+    ViewData["Title"] = "Home Page";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Welcome to My Order Handler App!</h1>
+   
+ <div id="order-handler-app">
+        <div class="button-container pb-3" style="text-align:center;">
+            <button class="btn btn-secondary" v-on:click="loadOrders">Load</button>
+            <button class="btn btn-success" v-on:click="createOrder">Create</button>
+            <button v-if="operationMode != 0" class="btn btn-secondary" v-on:click="backToList">Back to list</button>
+        </div>
+        <div id="content" style="display: flex; justify-content: center; flex-wrap: wrap;">
+            <div v-if="errors.length > 0">
+                <span v-for="msg in errors" style="color:red;font-weight:bold;">{{ msg }}</span>
+            </div>
+            <div v-if="messages.length > 0">
+                <span v-for="msg in messages" style="color:green;">{{ msg }}</span>
+            </div>
+            <template v-if="operationMode == 0">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Item Id</th>
+                            <th>Quantity</th>
+                            <th>Unit Price</th>
+                            <th>Currency</th>
+                            <th>Note</th>
+                            <th>Date</th>
+                            <th>Supplier Name</th>
+                           
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="order in orders">
+                            <td>{{ order.id }}</td>
+                            <td>{{ order.itemId }}</td>
+                            <td>{{ order.quantity }}</td>
+                            <td>{{ order.unitPrice }}</td>
+                            <td>{{ order.currency }}</td>
+                            <td>{{ order.note }}</td>
+                            <td>{{ order.date }}</td>
+                            <td>{{ order.supplierName }}</td>
+                            
+                            <td style="width:20%;text-align:right;">
+                                <button class="btn btn-info" v-on:click="viewOrder(order)">View</button>
+                                <button class="btn btn-warning" v-on:click="editOrder(order)">Edit</button>
+                                <button class="btn btn-danger" v-on:click="deleteOrder(order)">Delete</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </template>
+            <template v-else-if="operationMode == 1">
+                <view-component v-bind:order="selectedOrder"></view-component>
+            </template>
+            <template v-else-if="operationMode == 2">
+                <!--Create case-->
+                <editor-component v-on:saved="savedSuccessfully"
+                                  v-on:cancelled="operationCancelled"></editor-component>
+            </template>
+            <template v-else>
+                <!--Edit case-->
+                <editor-component v-bind:order="selectedOrder"
+                                  v-on:saved="savedSuccessfully"
+                                  v-on:cancelled="operationCancelled"></editor-component>
+            </template>
+        </div>
+    </div>
+</div>
+
+
+<script src="~/lib/vue/dist/vue.js"></script>
+<script src="~/lib/axios/dist/axios.js"></script>
+<script type="text/javascript">
+
+    const axi = axios.create({
+        baseURL: 'http://localhost:55271/api/Order/'
+    });
+     var orderHandlerApp = new Vue({
+        el: '#order-handler-app',
+        data: {
+            orders: [],
+            selectedOrder:{},
+            operationMode: 0, //0 list, 1 view, 2 create, 3 edit
+            messages: [],
+            errors: []
+        },
+        computed: {
+            enabledBackToList() {
+                return this.operationMode != 0;
+            }
+        },
+        methods: {
+            loadOrders(){
+                axi.get('GetAll').then((response) => {
+                    this.orders = response.data;
+                    console.log(response.data);
+                }).catch((err) => {
+                    console.log(err);
+                });
+            },
+            viewOrder: function(order) {
+                this.selectedOrder = order;
+                this.operationMode = 1;
+            },
+            createOrder: function() {
+                this.operationMode = 2;
+            },
+            editOrder: function(order) {
+                this.selectedOrder = order;
+                this.operationMode = 3;
+            },
+            deleteOrder: function (order) {
+
+                axi.delete('Delete/' + order.id).then((response) => {
+     
+                    if (response.data.success) {
+                        this.message.push("Order has been deleted successfully.");
+                        this.loadOrders();
+
+                        setTimeout(() => { this.messages = []; }, 3000);
+                    } else {
+
+                        this.errors = response.data.messages;
+                        setTimeout(() => { this.errors = []; }, 3000);
+                        this.loadOrders();
+                         
+                    }
+                }).catch((err) => {
+      
+                    this.errors.push('Error occured during delete.');
+                    setTimeout(() => {this.errors = []; }, 3000);
+                });
+                
+            },
+            backToList() {
+                this.selectedOrder = {};
+                this.operationMode = 0;
+            },
+            savedSuccessfully(msg) {
+                
+                this.messages.push(msg);
+                console.log("saved");
+                this.loadOrders();
+                this.selectedOrder = {};
+                this.operationMode = 0;
+
+                setTimeout(() => {this.messages = []; }, 3000);
+            },
+            operationCancelled() {
+                this.selectedOrder = {};
+                this.messages.push("The operation has been cancelled.");
+
+                console.warn("cancelled");
+                 this.selectedOrder = {}
+                this.operationMode = 0;
+                setTimeout(() => { this.messages = []; }, 3000);
+            }
+        }
+    });
+    Vue.component('view-component', {
+        props: ['order'],
+        template: '#view-template'
+    });
+    Vue.component('editor-component', {
+        props: ['order'],
+        template: '#editor-template',
+        data: function () {
+            return {
+                innerOrder: {},
+                items: [],
+                suppliers: [],
+                isEdit: false,
+                errors: []
+            };
+        },
+        methods: {
+            save() {
+                if (this.isEdit) {
+                    axi.put('Update', this.innerOrder).then(this.handleSuccess).catch((err) => {
+                        console.log(err);
+                        this.handleError(['Error occured during processing.']);
+                    });
+                }
+                else {
+                    axi.post('Create', this.innerOrder).then(this.handleSuccess).catch((err) => {
+                        console.log(err);
+                        this.handleError(['Error occured during processing.']);
+                    });
+                }
+            },
+            cancel() {
+                this.$emit('cancelled');
+            },
+            handleSuccess(response) {
+                if (response.data.isSuccess) {
+                    this.$emit('saved', this.isEdit ? "Order edited successfully" : "Order created successfully");
+                } else {
+                    this.handleError(response.data.messages);
+                }
+            },
+            handleError(errorMessages) {
+                this.errors = errorMessages;
+
+                setTimeout(() => { this.errors = []; }, 3000); // Auto error clean after 3sec
+            }
+        },
+        created: function () {
+            if (this.order != undefined) {
+                this.isEdit = true;
+
+                // Copy
+                this.innerOrder = {
+                    id: this.order.id,
+                    itemId: this.order.itemId,
+                    quantity: this.order.quantity,
+                    unitPrice: this.order.unitPrice,
+                    currency: this.order.currency,
+                    note: this.order.note,
+                    date: this.order.date,
+                    supplierName: this.order.supplierName,
+                    supplierId: this.order.supplierId
+                    
+                };
+            } else {
+                // Create new
+                this.innerOrder = {
+                    id: 0,
+                    itemId: 0,
+                    quantity: 0,
+                    unitPrice: 0,
+                    currency: '',
+                    note: '',
+                    date: '',
+                    supplierName: '',
+                    supplierId: 0
+                };
+            }
+
+            axi.get("GetAllSupplier").then((response) => {
+                this.suppliers = response.data;
+            }).catch((err) => {
+                console.error(err);
+            });
+            axi.get("GetAllItem").then((response) => {
+                this.items = response.data;
+            }).catch((err) => {
+                console.error(err);
+            });
+        }
+    });
+</script> 
+
+<script type="text/x-template" id="view-template">
+<div style="text-align:left" class="view-style">
+        <div>
+            <strong>Order Id</strong><br />
+            <label>{{ order.id }}</label>
+        </div>
+        <div>
+            <strong>Item Id</strong><br />
+            <label>{{ order.itemId }}</label>
+        </div>
+        <div>
+            <strong>Quantity</strong><br />
+            <label>{{ order.quantity }}</label>
+        </div>
+        <div>
+            <strong>Unit Price</strong><br />
+            <label>{{ order.unitPrice }}</label>
+        </div>
+        <div>
+            <strong>Currency</strong><br />
+            <label>{{ order.currency }}</label>
+        </div>
+         <div>
+            <strong>Note</strong><br />
+            <label>{{ order.note }}</label>
+        </div>
+        <div>
+            <strong>Date</strong><br />
+            <label>{{ order.date }}</label>
+        </div>
+        <div>
+            <strong>Supplier Name</strong><br />
+            <label>{{ order.supplierName }}</label>
+        </div>
+         <div>
+            <strong>Supplier Id</strong><br />
+            <label>{{ order.supplierId }}</label>
+        </div>
+</div>
+</script>
+<script type="text/x-template" id="editor-template">
+    <div style="text-align:left" class="order-view-container">
+        <div v-if="errors.length > 0">
+            <span v-for="msg in errors" style="color:red;font-weight:bold;">{{ msg }}</span>
+        </div>
+        <div>
+             <input type="hidden" v-model="innerOrder.id" class="form-control" />
+             <input type="hidden" v-model="innerOrder.supplierId" class="form-control" />
+            <strong>Item</strong><br />
+            <select id="item-selector" v-model="innerOrder.itemId" class="form-control">
+                <option v-for="item in items" v-bind:value="item.id">{{ item.name }}</option>
+            </select>
+             
+        </div>
+        <div>
+            
+            <strong>Supplier Name</strong><br />
+            <select id="supplier-selector" v-model="innerOrder.supplierId" class="form-control">
+                <option v-for="supplier in suppliers" v-bind:value="supplier.id">{{ supplier.name }}</option>
+            </select>
+        </div>
+        
+        <div>
+            <strong>Currency</strong><br />
+            <input type="text" v-model="innerOrder.currency" class="form-control" />
+        </div>
+        <div>
+            <strong>Date</strong><br />
+            <input type="datetime" v-model="innerOrder.date" class="form-control" />
+        </div>
+         <div>
+            <strong>Quantity</strong><br />
+            <input type="number" v-model.number="innerOrder.quantity" class="form-control" />
+        </div>
+                <div>
+            <strong>Unit Price</strong><br />
+            <input type="number" v-model.number="innerOrder.unitPrice" class="form-control" />
+        </div>
+        <div>
+            <strong>Note</strong><br />
+            <input type="text" v-model="innerOrder.note" class="form-control" />
+        </div>
+        <div class="float-right pt-3">
+            <button class="btn btn-primary" v-on:click="save">Mentés</button>
+            <button class="btn btn-secondary" v-on:click="cancel">Mégsem</button>
+        </div>
+    </div>
+</script>
