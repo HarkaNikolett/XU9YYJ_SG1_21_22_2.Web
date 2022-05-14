@@ -15,11 +15,11 @@ namespace XU9YYJ_HFT_2021221.Repository.Repositories
         {
         }
 
-        public void Delete(Order entity)
-        {
-            Context.Remove(entity);
-            Context.SaveChanges();
-        }
+        //public void Delete(Order entity)
+        //{
+        //    Context.Remove(entity);
+        //    Context.SaveChanges();
+        //}
 
         public override Order Read(int id)
         {

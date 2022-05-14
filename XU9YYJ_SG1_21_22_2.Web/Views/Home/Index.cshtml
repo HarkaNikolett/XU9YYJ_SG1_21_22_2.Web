@@ -118,10 +118,9 @@
 
                 axi.delete('Delete/' + order.id).then((response) => {
      
-                    if (response.data.success) {
-                        this.message.push("Order has been deleted successfully.");
+                    if (response.data.isSuccess) {
                         this.loadOrders();
-
+                        this.messages.push("Order has been deleted successfully.");
                         setTimeout(() => { this.messages = []; }, 3000);
                     } else {
 
@@ -130,12 +129,13 @@
                         this.loadOrders();
                          
                     }
+           
                 }).catch((err) => {
       
                     this.errors.push('Error occured during delete.');
                     setTimeout(() => {this.errors = []; }, 3000);
                 });
-                
+              
             },
             backToList() {
                 this.selectedOrder = {};
@@ -191,6 +191,7 @@
                         console.log(err);
                         this.handleError(['Error occured during processing.']);
                     });
+                    
                 }
             },
             cancel() {
@@ -235,7 +236,7 @@
                     unitPrice: 0,
                     currency: '',
                     note: '',
-                    date: '',
+                    date: '2022-05-14T10:37:00',
                     supplierName: '',
                     supplierId: 0
                 };
@@ -323,7 +324,7 @@
         </div>
         <div>
             <strong>Date</strong><br />
-            <input type="datetime" v-model="innerOrder.date" class="form-control" />
+            <input type="date" v-model="innerOrder.date" class="form-control" />
         </div>
          <div>
             <strong>Quantity</strong><br />

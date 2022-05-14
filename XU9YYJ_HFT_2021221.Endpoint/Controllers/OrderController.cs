@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using XU9YYJ_HFT_2021221.Logic.Interfaces;
+using XU9YYJ_HFT_2021221.Models.DTOs;
 using XU9YYJ_HFT_2021221.Models.Entities;
 using XU9YYJ_HFT_2021221.Models.Models;
 
@@ -40,17 +41,29 @@ namespace XU9YYJ_HFT_2021221.Endpoint.Controllers
         // POST api/Order/Create
         [HttpPost]
         [ActionName("Create")]
-        public ApiResult Post(Order order)
+        public ApiResult Post(OrderDTO order)
         {
             var result = new ApiResult(true);
             try
             {
-                orderLogic.Create(order);
+                orderLogic.Create(new Order()
+                {
+                    Id = order.Id,
+                    ItemId = order.ItemId,
+                    Quantity = order.Quantity,
+                    UnitPrice = order.UnitPrice,
+                    Currency = order.Currency,
+                    Note = order.Note,
+                    Date = order.Date,
+                    SupplierName = order.SupplierName,
+                    SupplierId = order.SupplierId
+                });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
                 result.IsSuccess = false;
+                result.Messages = new List<string>() { ex.Message };
             }
             return result;
 
@@ -59,17 +72,30 @@ namespace XU9YYJ_HFT_2021221.Endpoint.Controllers
         // PUT api/Order/Update
         [HttpPut]
         [ActionName("Update")]
-        public ApiResult Put(Order order)
+        public ApiResult Put(OrderDTO order)
         {
             var result = new ApiResult(true);
             try
             {
-                orderLogic.Update(order);
+                orderLogic.Update(new Order()
+                {
+                    Id = order.Id,
+                    ItemId = order.ItemId,
+                    Quantity = order.Quantity,
+                    UnitPrice = order.UnitPrice,
+                    Currency = order.Currency,
+                    Note = order.Note,
+                    Date = order.Date,
+                    SupplierName = order.SupplierName,
+                    SupplierId = order.SupplierId
+
+                });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
                 result.IsSuccess = false;
+                result.Messages = new List<string>() { ex.Message };
             }
             return result;
         }
@@ -84,10 +110,11 @@ namespace XU9YYJ_HFT_2021221.Endpoint.Controllers
             {
                 orderLogic.Delete(id);                
             }
-            catch (Exception)
+            catch (Exception ex)
             {
 
                 result.IsSuccess = false;
+                result.Messages = new List<string>() { ex.Message };
             }
             return result;
         }

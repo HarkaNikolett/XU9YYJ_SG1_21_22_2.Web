@@ -23,20 +23,34 @@ namespace XU9YYJ_HFT_2021221.Logic.Services
         }
         public Order Create(Order entity)
         {
-            var validator = new Validator();
-            if (validator.Validate(entity))
+            if (entity.SupplierId == 0 )
             {
-                var result = _orderRepository.Create(entity);
-                return result;
+                throw new ApplicationException("Please choose supplier!");
+            }
+            if (entity.ItemId == 0)
+            {
+                throw new ApplicationException("Please choose item!");
+            }
+            if (String.IsNullOrWhiteSpace(entity.Currency))
+            {
+                throw new ApplicationException("Currency is required.");
+            }
+            if (entity.UnitPrice < 0)
+            {
+                throw new ApplicationException("Price must be greater or equal to 0!");
+            }
+            if (entity.Quantity < 0)
+            {
+                throw new ApplicationException("Price must be greater or equal to 0!");
+            }
+
+            var result = _orderRepository.Create(entity);
+
+            // TODO: log
+
+            return result;
+
         }
-            else
-            {
-                throw new InvalidOperationException("Incorrect object data.");
-    }
-
-    //TODO: check access, log
-
-}
         public void Delete(int id)
         {
 

@@ -9,6 +9,6 @@ namespace XU9YYJ_HFT_2021221.Repository.Interfaces
 {
     public interface IOrderRepository : IRepositoryBase<Order, int>
     {
-        void Delete(Order entity);
+       
     }
 }
